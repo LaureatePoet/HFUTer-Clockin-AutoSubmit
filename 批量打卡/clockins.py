@@ -2,12 +2,10 @@ import requests
 import os
 import json
 import time
-import threading
 from Crypto.Cipher import AES
 import base64
 import re
 from urllib.parse import quote
-from random import choice, randint
 
 
 requests = requests.session()
@@ -176,12 +174,6 @@ def logout():
     requests.cookies.clear()
 
 
-def change_bgc():
-    while True:
-        color_cmd = 'color ' + ''.join([choice("0123456789ABCDEF") for i in range(2)])
-        os.system(color_cmd)
-        time.sleep(randint(0, 3))
-
 def pre_auto_submit():
     if not os.path.exists(file_name):
         fp = open(file_name, 'w', encoding='utf-8')
@@ -205,7 +197,6 @@ def auto_submit():
     with open(file_name, 'r', encoding='utf-8') as f:
         count = 0
         while True:
-            os.system('color 7a')
             message = f.readline().strip('\n')
             if len(message) == 0:
                 if count == 0:
@@ -232,9 +223,6 @@ def auto_submit():
             os.system('cls 2>nul 1>nul')
 
 def main():
-    tt = threading.Thread(target=change_bgc)
-    tt.setDaemon(True)
-    tt.start()
     if not pre_auto_submit():
         return
     auto_submit()

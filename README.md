@@ -46,7 +46,7 @@ Fork本项目，点击`Settings`，增加`ACCOUNT`、`PASSWORD`、`ADDRESS` 3个
 
 ## 其他
 ### 批量处理
-参考[项目来源](#项目来源)中的[Campus-daily-crack](https://github.com/moddemod/Campus-daily-crack)，只需要编辑好`info.txt`，即可实现；或者采用本项目`批量打卡`文件夹，编辑好`info.txt`，运行`new_version_form.py`即可。
+参考[项目来源](#项目来源)中的[Campus-daily-crack](https://github.com/moddemod/Campus-daily-crack)，只需要编辑好`info.txt`，即可实现；或者采用本项目`批量打卡`文件夹，编辑好`info.txt`，运行`clockins.py`即可。
 
 ### 项目来源
 * [Campus-daily-crack](https://github.com/moddemod/Campus-daily-crack)

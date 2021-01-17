@@ -3,13 +3,10 @@ import os
 import json
 import time
 import sys
-import threading
 from Crypto.Cipher import AES
 import base64
 import re
 from urllib.parse import quote
-from random import choice, randint
-
 
 requests = requests.session()
 headers = {
@@ -24,24 +21,20 @@ app_id = ''
 app_name = ''
 file_name = 'info.txt'
 
-
 def get_post_url():
     url = 'http://stu.hfut.edu.cn/xsfw/sys/emapfunauth/casValidate.do?service=/xsfw/sys/swmxsyqxxsjapp/*default/index.do'
     response = requests.get(url=url, headers=headers)
     return response.url.split('?')[1]
-
 
 def add_to_16(s):
     while len(s) % 16 != 0:
         s += (16 - len(s) % 16) * chr(16 - len(s) % 16)
     return str.encode(s)  # 返回bytes
 
-
 def encrypt(text, key):
     aes = AES.new(str.encode(key), AES.MODE_ECB)
     encrypted_text = str(base64.encodebytes(aes.encrypt(add_to_16(text))), encoding='utf8').replace('\n', '')
     return encrypted_text
-
 
 def check_user_identy(username, password, key):
     password = encrypt(password, key)
@@ -52,10 +45,8 @@ def check_user_identy(username, password, key):
     # print(r.text)
     return password
 
-
 def get_stamp():
     return int(round(time.time() * 1000))
-
 
 def jump_auth_with_key():
     """
@@ -70,7 +61,6 @@ def jump_auth_with_key():
     LOGIN_FLAVORING_url = 'https://cas.hfut.edu.cn/cas/checkInitVercode?_=' + get_stamp().__str__()
     response = requests.get(url=LOGIN_FLAVORING_url, headers=headers)
     return response.cookies.values()[0]
-
 
 def login(username, password):
     url = 'https://cas.hfut.edu.cn/cas/login?' + get_post_url()
@@ -109,7 +99,6 @@ def login(username, password):
     except Exception as e:
         print(e.__str__())
         return False
-
 
 def get_today_date():
     return time.strftime('%Y-%m-%d', time.localtime())
@@ -171,74 +160,8 @@ def fill_form(username, address):
     response = requests.post(url=post_url, headers=headers_form, data=data)
     print(response.text)
 
-
-def query_fill_state():
-    url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/getStuTbData.do'  # 每天填写的状态信息
-    data = 'data=%7B%22pageNumber%22%3A1%2C%22pageSize%22%3A10%2C%22KSRQ%22%3A%22%22%2C%22JSRQ%22%3A%22%22%7D'
-    r1 = requests.post(url=url, headers=headers_form, data=data)
-    print(r1.text)
-
-
 def logout():
     requests.cookies.clear()
-
-
-def change_bgc():
-    while True:
-        color_cmd = 'color ' + ''.join([choice("0123456789ABCDEF") for i in range(2)])
-        os.system(color_cmd)
-        time.sleep(randint(0, 3))
-
-def pre_auto_submit():
-    if not os.path.exists(file_name):
-        fp = open(file_name, 'w', encoding='utf-8')
-        fp.write('201xxxxx 123xxxxx 安徽省合肥市包河区亲民路 [模板示例，请删除该行]')
-        fp.close()
-        print('第一次使用，请在info.txt文件中按照格式添加信息哦！')
-        print()
-        print('地址是你在今日校园上的定位信息，所以这里你可以任意填写，火星月亮都可，（建议最好填个地址）')
-        print('中间记得用一个空格隔开。。。')
-        print('下面给一个模板.....')
-        print('201xxxxx 123xxxxx 安徽省合肥市包河区亲民路')
-        print()
-        print('所以你可以在info.txt文件中添加n个人的信息，这样就可以实现批量填写了...')
-        print('github:https://github.com/moddemod/Campus-daily-crack')
-        os.system('pause')
-        return False
-    return True
-
-
-def auto_submit():
-    # 自动提交
-    with open(file_name, 'r', encoding='utf-8') as f:
-        count = 0
-        while True:
-            os.system('color 7a')
-            message = f.readline().strip('\n')
-            if len(message) == 0:
-                if count == 0:
-                    print('info.txt中填写信息...')
-                    return
-                break
-            try:
-                username, password, address = tuple(message.split(' '))
-            except Exception as e:
-                print(e.__str__())
-                print('请按照格式填写信息哦....')
-                break
-            count += 1
-            print('[+]{}: [{} {} {}]'.format(count, username, password, address))
-            key = jump_auth_with_key()
-            password = check_user_identy(username, password, key)
-            ok = login(username, password)
-            if ok:
-                pre_post()
-                fill_form(username=username, address=address)
-                print('提交成功！')
-            logout()
-            time.sleep(2)
-            os.system('cls 2>nul 1>nul')
-
 
 def submit(usn,psw,adds):
     username = usn
@@ -257,24 +180,6 @@ def submit(usn,psw,adds):
         return
     print('登录失败哦....')
     os.system('pause')
-
-
-def main():
-    tt = threading.Thread(target=change_bgc)
-    tt.setDaemon(True)
-    tt.start()
-    mode = input('请选择模式：1[手动输入]，2[自动定时批量提交]:')
-    if mode == '1':
-        submit()
-    elif mode == '2':
-        if not pre_auto_submit():
-            return
-        auto_submit()
-
-    else:
-        print('exit...')
-        os.system('pause')
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
