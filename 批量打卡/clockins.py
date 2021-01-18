@@ -7,7 +7,6 @@ import base64
 import re
 from urllib.parse import quote
 
-
 requests = requests.session()
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
@@ -115,12 +114,12 @@ def get_today_date():
 def judge_fill():
     # 判断是否填写了
     judge_url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/judgeTodayHasData.do'  # 判断今天是否填写
-    data1 = 'data=%7B%22TBSJ%22%3A%22{}%22%7D'.format(get_today_date())
-    r1 = requests.post(url=judge_url, headers=headers_form, data=data1)
+    data = 'data=%7B%22TBSJ%22%3A%22{}%22%7D'.format(get_today_date())
+    response = requests.post(url=judge_url, headers=headers_form, data=data).json()
     # print(r1.text)
-    # {"code":"0","msg":"成功","data":[]} 没填写返回空列表
-    r_json = json.loads(r1.text)
-    if r_json['data'].__len__():
+    # {"code":"0","msg":"成功","data":[]}
+    # print(response)
+    if response['data'].__len__():
         # 已经填写
         return True
     # 未填
@@ -136,16 +135,50 @@ def pre_post():
     requests.post(url=p_url2, headers=headers_form, data=data)
 
 
+def pre():
+
+    def get_desktop_id():
+        url = 'http://stu.hfut.edu.cn/xsfw/sys/emappagelog/config/xggzptapp.do'
+        return requests.get(url=url, headers=headers).json()[0]['id']
+
+    def get_str_time():
+        time_str = time.strftime('%H:%M:%S', time.localtime())
+        return quote(time_str)
+    data = [
+        {
+            'id': get_desktop_id(),
+            "device": "pc",
+            "eventTime": get_str_time(),
+            "params": ''
+        }
+    ]
+    data = 'd={}'.format(quote(json.dumps(data, ensure_ascii=False).replace(' ', ''))).replace('%2B', '+')
+    url = 'http://stu.hfut.edu.cn/xsfw/sys/emappagelog/push.do'
+    requests.post(url=url, headers=headers_form, data=data)
+
+
+def pre1():
+    url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa.do'
+    response = requests.post(url=url, headers=headers_form, data='*json=1').json()
+    response = requests.post(url=url, headers=headers_form, data='*json=1').json()
+
+
+
 def fill_form(username, address):
     # 开始填写表单
     # pre_post() # 后面都使用5ngm
     # 下面开始填写表单
-
+    pre()
+    pre1()
     def make_data():
         # 提交的数据
         url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/getStuXx.do'
         data = 'data=%7B%7D'
+        url1 = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/getSetting.do'
+        requests.post(url=url1, headers=headers_form, data=data)
+        # 看看是不是这里导致显示未进行填报
         response = requests.post(url=url, headers=headers_form, data=data)
+        requests.post(url=url1, headers=headers_form, data=data)
         r_json = json.loads(response.text)
         post_data = r_json['data']
         return post_data
@@ -154,8 +187,9 @@ def fill_form(username, address):
     if not post_data.__len__():
         print('[+]你是第一次填写哦！第一次填写请使用客户端填写，之后再使用该工具！')
         return
+    post_data['DZ_SFSB'] = '1'
     post_data.update({
-        "isToday": True,
+        #"isToday": True,
         "GCKSRQ": "",
         "GCJSRQ": "",
         "DFHTJHBSJ": "",
@@ -163,11 +197,19 @@ def fill_form(username, address):
         "DZ_TBDZ": address,
         "BY1": "1"
     })
+
     data = 'data={}'.format(quote(json.dumps(post_data, ensure_ascii=False).replace(' ', '')))
     post_url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/saveStuXx.do'
     response = requests.post(url=post_url, headers=headers_form, data=data)
     print(response.text)
 
+
+def query_fill_state():
+    url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/getStuTbData.do'  # 每天填写的状态信息
+    data = 'data=%7B%22pageNumber%22%3A1%2C%22pageSize%22%3A10%2C%22KSRQ%22%3A%22%22%2C%22JSRQ%22%3A%22%22%7D'
+    response = requests.post(url=url, headers=headers_form, data=data).json()
+    state_info = response['data'][0]
+    print('你好，{}，你的学号：{},当前日期：{}，状态：{}，当前获得{}'.format(state_info['XM'], state_info['XSBH'], state_info['TBSJ'], state_info['DZ_SFSB_DISPLAY'], state_info['BY1_DISPLAY']))
 
 
 def logout():
@@ -187,6 +229,7 @@ def pre_auto_submit():
         print('201xxxxx 123xxxxx 安徽省合肥市包河区亲民路')
         print()
         print('所以你可以在info.txt文件中添加n个人的信息，这样就可以实现批量填写了...')
+        print('github:https://github.com/moddemod/Campus-daily-crack')
         os.system('pause')
         return False
     return True
@@ -218,6 +261,8 @@ def auto_submit():
                 pre_post()
                 fill_form(username=username, address=address)
                 print('提交成功！')
+                query_fill_state()
+                judge_fill()
             logout()
             time.sleep(2)
             os.system('cls 2>nul 1>nul')

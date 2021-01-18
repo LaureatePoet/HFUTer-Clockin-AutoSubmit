@@ -41,7 +41,7 @@ Fork本项目，点击`Settings`，增加`ACCOUNT`、`PASSWORD`、`ADDRESS` 3个
 
 >一定要**Star**自己的这个仓库，否则不执行！
 
-> *Github Actions*的配置文件在`.github/workflows/HFUT-Auto-Clockin.yml`，默认设置的打开时间是每天17/18时0/30分。
+> *Github Actions*的配置文件在`.github/workflows/HFUT-Auto-Clockin.yml`，默认设置的打开时间是每天14/15时0/30分（UTC+8）。
 如果需要个性化配置（执行时间，执行条件等等），需编辑对应配置文件`.yml`
 
 ## 其他

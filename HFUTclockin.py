@@ -1,12 +1,13 @@
 import requests
 import os
+import sys
 import json
 import time
-import sys
 from Crypto.Cipher import AES
 import base64
 import re
 from urllib.parse import quote
+
 
 requests = requests.session()
 headers = {
@@ -21,20 +22,24 @@ app_id = ''
 app_name = ''
 file_name = 'info.txt'
 
+
 def get_post_url():
     url = 'http://stu.hfut.edu.cn/xsfw/sys/emapfunauth/casValidate.do?service=/xsfw/sys/swmxsyqxxsjapp/*default/index.do'
     response = requests.get(url=url, headers=headers)
     return response.url.split('?')[1]
+
 
 def add_to_16(s):
     while len(s) % 16 != 0:
         s += (16 - len(s) % 16) * chr(16 - len(s) % 16)
     return str.encode(s)  # 返回bytes
 
+
 def encrypt(text, key):
     aes = AES.new(str.encode(key), AES.MODE_ECB)
     encrypted_text = str(base64.encodebytes(aes.encrypt(add_to_16(text))), encoding='utf8').replace('\n', '')
     return encrypted_text
+
 
 def check_user_identy(username, password, key):
     password = encrypt(password, key)
@@ -45,8 +50,10 @@ def check_user_identy(username, password, key):
     # print(r.text)
     return password
 
+
 def get_stamp():
     return int(round(time.time() * 1000))
+
 
 def jump_auth_with_key():
     """
@@ -61,6 +68,7 @@ def jump_auth_with_key():
     LOGIN_FLAVORING_url = 'https://cas.hfut.edu.cn/cas/checkInitVercode?_=' + get_stamp().__str__()
     response = requests.get(url=LOGIN_FLAVORING_url, headers=headers)
     return response.cookies.values()[0]
+
 
 def login(username, password):
     url = 'https://cas.hfut.edu.cn/cas/login?' + get_post_url()
@@ -100,6 +108,7 @@ def login(username, password):
         print(e.__str__())
         return False
 
+
 def get_today_date():
     return time.strftime('%Y-%m-%d', time.localtime())
 
@@ -107,12 +116,12 @@ def get_today_date():
 def judge_fill():
     # 判断是否填写了
     judge_url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/judgeTodayHasData.do'  # 判断今天是否填写
-    data1 = 'data=%7B%22TBSJ%22%3A%22{}%22%7D'.format(get_today_date())
-    r1 = requests.post(url=judge_url, headers=headers_form, data=data1)
+    data = 'data=%7B%22TBSJ%22%3A%22{}%22%7D'.format(get_today_date())
+    response = requests.post(url=judge_url, headers=headers_form, data=data).json()
     # print(r1.text)
-    # {"code":"0","msg":"成功","data":[]} 没填写返回空列表
-    r_json = json.loads(r1.text)
-    if r_json['data'].__len__():
+    # {"code":"0","msg":"成功","data":[]}
+    # print(response)
+    if response['data'].__len__():
         # 已经填写
         return True
     # 未填
@@ -128,16 +137,51 @@ def pre_post():
     requests.post(url=p_url2, headers=headers_form, data=data)
 
 
+def pre():
+
+    def get_desktop_id():
+        url = 'http://stu.hfut.edu.cn/xsfw/sys/emappagelog/config/xggzptapp.do'
+        return requests.get(url=url, headers=headers).json()[0]['id']
+
+    def get_str_time():
+        time_str = time.strftime('%H:%M:%S', time.localtime())
+        return quote(time_str)
+    data = [
+        {
+            'id': get_desktop_id(),
+            "device": "pc",
+            "eventTime": get_str_time(),
+            "params": ''
+        }
+    ]
+    data = 'd={}'.format(quote(json.dumps(data, ensure_ascii=False).replace(' ', ''))).replace('%2B', '+')
+    # data = '%5B%7B%22id%22%3A%22{}%22%2C%22device%22%3A%22pc%22%2C%22eventTime%22%3A%22{}+{}%22%2C%22params%22%3A%22%22%7D%5D'.format(get_desktop_id(), get_today_date(), get_str_time())
+    url = 'http://stu.hfut.edu.cn/xsfw/sys/emappagelog/push.do'
+    requests.post(url=url, headers=headers_form, data=data)
+
+
+def pre1():
+    url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa.do'
+    response = requests.post(url=url, headers=headers_form, data='*json=1').json()
+    response = requests.post(url=url, headers=headers_form, data='*json=1').json()
+
+
+
 def fill_form(username, address):
     # 开始填写表单
     # pre_post() # 后面都使用5ngm
     # 下面开始填写表单
-
+    pre()
+    pre1()
     def make_data():
         # 提交的数据
         url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/getStuXx.do'
         data = 'data=%7B%7D'
+        url1 = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/getSetting.do'
+        requests.post(url=url1, headers=headers_form, data=data)
+        # 看看是不是这里导致显示未进行填报
         response = requests.post(url=url, headers=headers_form, data=data)
+        requests.post(url=url1, headers=headers_form, data=data)
         r_json = json.loads(response.text)
         post_data = r_json['data']
         return post_data
@@ -146,8 +190,9 @@ def fill_form(username, address):
     if not post_data.__len__():
         print('[+]你是第一次填写哦！第一次填写请使用客户端填写，之后再使用该工具！')
         return
+    post_data['DZ_SFSB'] = '1'
     post_data.update({
-        "isToday": True,
+        #"isToday": True,
         "GCKSRQ": "",
         "GCJSRQ": "",
         "DFHTJHBSJ": "",
@@ -155,6 +200,7 @@ def fill_form(username, address):
         "DZ_TBDZ": address,
         "BY1": "1"
     })
+
     data = 'data={}'.format(quote(json.dumps(post_data, ensure_ascii=False).replace(' ', '')))
     post_url = 'http://stu.hfut.edu.cn/xsfw/sys/swmxsyqxxsjapp/modules/mrbpa/saveStuXx.do'
     response = requests.post(url=post_url, headers=headers_form, data=data)
